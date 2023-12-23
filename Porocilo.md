@@ -1,6 +1,5 @@
 # Porocilo
 
-
 ## K2
 
 ### K2.1
@@ -33,12 +32,31 @@ Logičnega modela ni bilo potrebno popravljati, saj naš konceptualni model ne v
 | VLOGA                | ID_VLOGE -> ID_FILMA, IME_LIKA, OPIS_VLOGE                   |
 | ZANR                 | ID_ZANRA -> IME, OPIS_ZANRA                                   |
 
+S pregledom dobljenih relacijskih shem in določitvijo funkcionalnih odvisnosti sva ugotovila, da je najin logični model že ustrezno v tretji normalni
+obliki, saj se nikjer ne pojavljajo tranzitivne oziroma parcialne odvisnosti
+(hkrati pa nimava večvrednostnih atributov, primarni ključi pa so tudi ustrezno določeni).
+
 
 ### K2.3
 Gašper prosim preverij transakcije, ki si jih napisal.
 
 ### K2.4
-Preverila sva, da so imeli vsi atributi nastavljene ustrezne obveznosti, prav tako sva preverila domene. Ker MySQL 5 podpira vse uporabljene tipe, s tem ni bilo težav. Vsak uporabljen podatkovni tip (Integer, Float, Boolean, VarChar, Date, Time) se je lepo preslikal v enak podatkovni tip. Prav tako so bile ustrezne števnosti. (NAPIŠI ŠE NEKAJ O REFERENCIALNI INTEGRITETI).
+Preverila sva, da so imeli vsi atributi nastavljene ustrezne obveznosti, prav tako sva preverila domene. Ker MySQL 5 podpira vse uporabljene tipe, s tem ni bilo težav. Vsak uporabljen podatkovni tip (Integer, Float, Boolean, VarChar, Date, Time) se je lepo preslikal v enak podatkovni tip. Prav tako so bile ustrezne števnosti. 
+
+Referencialno integriteto preverim z neveljavnim režiserja (napačen ID Oseba).
+
+```sql
+INSERT INTO REZISER (ID_OSEBE, STEVILO_REZIRANIH_FILMOV)
+VALUES
+    (4, 10);
+```
+Ker imamo v bazi le osebe z IDji 1-3, se sproži napaka.
+
+```
+Cannot add or update a child row: a foreign key constraint fails (`kino`.`REZISER`, CONSTRAINT `FK_VLOGA_PRI_FILMU2` FOREIGN KEY (`ID_OSEBE`) REFERENCES `OSEBA` (`ID_OSEBE`))
+1 statement failed.
+```
+
 
 ## K3
 
@@ -46,15 +64,11 @@ Preverila sva, da so imeli vsi atributi nastavljene ustrezne obveznosti, prav ta
 Skripto sva kreirala za podatkovno bazo MySQL 5. To sva lokalno namestila s pomočjo Dockerja. Narekovajev ni bilo potrebno popravljati.
 
 ### K3.2
-Odločila sva se, da bova dodala ločen stolpec, ki bo preštel vse aktivne sedeže in s tem beležil realno kapaciteto dvorane.
-
-```sql
-ALTER TABLE DVORANA ADD COLUMN Stevilo_Sedezev INT;
-```
+Odločila sva se, da bova dodala stolpec, ki bo preštel vse aktivne sedeže in s tem beležil realno kapaciteto dvorane. Stolpec se sicer doda že ob kreaciji baze vendar je označen kot neobvezen. Kasneje se ga posodobi z naslednjim ukazom.
 
 ```sql
 UPDATE DVORANA
-SET Stevilo_Sedezev = (SELECT COUNT(*) FROM SEDEZ WHERE SEDEZ.ID_DVORANE = DVORANA.ID_DVORANE AND SEDEZ.AKTIVEN = 1);
+SET AKTIVNA_KAPACITETA = (SELECT COUNT(*) FROM SEDEZ WHERE SEDEZ.ID_DVORANE = DVORANA.ID_DVORANE AND SEDEZ.AKTIVEN = 1);
 ```
 
 To je smiselno, saj potrebujemo ob planiranju vsake predstave vedeti točno koliko sedežev imamo na voljo. Sedeže je potrebno obnavljati, saj se obrabljajo. Prav tako bova dodala sprožilec, ki bo ob "deaktiviranju" nekega sedeža ponovno preštel število sedežev v dvorani, kjer se deaktivirani sedež nahaja.
@@ -62,48 +76,35 @@ To je smiselno, saj potrebujemo ob planiranju vsake predstave vedeti točno koli
 ### K3.3
 ```sql
 CREATE TRIGGER update_active_seat AFTER UPDATE ON SEDEZ FOR EACH ROW
-BEGIN
-    DECLARE seat_count INT;
-
-    IF NEW.AKTIVEN != OLD.AKTIVEN THEN
-        SELECT COUNT(*) INTO seat_count
-        FROM SEDEZ
-        WHERE SEDEZ.ID_DVORANE = NEW.ID_DVORANE AND SEDEZ.AKTIVEN = 1;
-
-        UPDATE DVORANA
-        SET Stevilo_Sedezev = seat_count
-        WHERE DVORANA.ID_DVORANE = NEW.ID_DVORANE;
-    END IF;
-END;
+UPDATE DVORANA SET AKTIVNA_KAPACITETA = 
+(SELECT COUNT(*) FROM SEDEZ WHERE ID_DVORANE = DVORANA.ID_DVORANE AND AKTIVEN = 1)
 ```
 
 Ustvarila sva prožilec, ki prešteje in posodobi število aktivnih sedežev v dvorani ob spremembi statusa aktivnosti na sedežu v isti dvorani.
 
-### K3.4
+### K4
 Gašper prosim lepo.
 
-### K4.5
-Ustvarila sva pogled, ki izpiše vse vloge in igralce, ki igrajo v nekem filmu.
+### K5
+Ustvarila sva pogled, ki izpiše vse španske filme.
 
 ```sql
-CREATE VIEW VlogeIgralci AS
+CREATE VIEW IN_SPANISH AS
 SELECT 
-    IV.ID_FILMA,
-    IV.ID_VLOGE,
-    V.IME_LIKA AS Vloga,
-    I.ID_OSEBE,
-    O.IME AS Ime_igralca,
-    O.PRIIMEK AS Priimek_igralca
-FROM IMA_VLOGE IV
-INNER JOIN VLOGA V ON IV.ID_VLOGE = V.ID_VLOGE
-INNER JOIN VLOGO_IGRA_JO_ VIJ ON IV.ID_VLOGE = VIJ.ID_VLOGE
-INNER JOIN OSEBA O ON VIJ.ID_OSEBE = O.ID_OSEBE;
+    F.ID_FILMA,
+    F.NASLOV,
+    F.LETO_IZDAJE,
+    F.OCENA
+FROM FILM F
+INNER JOIN JE_V_JEZIKIH JJ ON F.ID_FILMA = JJ.ID_FILMA
+INNER JOIN JEZIK J ON JZ.ID_JEZIKA = J.ID_JEZIKA
+WHERE J.ID_JEZIKA = 3;
 ```
 
-Ustvarila sva pogled, ki izpiše vse filme nekega žanra.
+Ustvarila sva pogled, ki izpiše vse komedije.
 
 ```sql
-CREATE VIEW FilmiZaZanr AS
+CREATE VIEW COMEDIES AS
 SELECT 
     F.ID_FILMA,
     F.NASLOV,
@@ -112,5 +113,5 @@ SELECT
 FROM FILM F
 INNER JOIN JE_ZANRA JZ ON F.ID_FILMA = JZ.ID_FILMA
 INNER JOIN ZANR Z ON JZ.ID_ZANRA = Z.ID_ZANRA
-WHERE Z.IME = 'ime_žanra'; -- nadomestite 'ime_žanra' z dejanskim imenom žanra
+WHERE Z.ID_ZANRA = 3;
 ```
