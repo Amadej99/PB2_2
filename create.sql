@@ -42,7 +42,7 @@ create table DVORANA
    ID_DVORANE           int not null,
    IME_DVORANE          varchar(55) not null,
    KAPACITETA           int not null,
-   AKTIVNA_KAPACITETA   int not null,
+   AKTIVNA_KAPACITETA   int,
    primary key (ID_DVORANE)
 );
 
