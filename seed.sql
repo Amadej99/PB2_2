@@ -13,11 +13,11 @@ VALUES
     (3, 'Komedija', 'Opis žanra komedije');
 
 -- FILM table
-INSERT INTO FILM (ID_FILMA, NASLOV, LETO_IZDAJE, DOLZINA)
+INSERT INTO FILM (ID_FILMA, NASLOV, LETO_IZDAJE, DOLZINA, OCENA)
 VALUES
-    (1, 'Film 1', 2020, '02:15:00'),
-    (2, 'Film 2', 2018, '01:50:00'),
-    (3, 'Film 3', 2021, '02:30:00');
+    (1, 'Film 1', 2020, '02:15:00',4),
+    (2, 'Film 2', 2018, '01:50:00',8),
+    (3, 'Film 3', 2021, '02:30:00',6);
     
 -- OSEBA table
 INSERT INTO OSEBA (ID_OSEBE, IME, PRIIMEK, SPOL, DATUM_ROJSTVA)

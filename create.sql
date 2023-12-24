@@ -55,6 +55,7 @@ create table FILM
    NASLOV               varchar(55) not null,
    LETO_IZDAJE          int not null,
    DOLZINA              time,
+   OCENA                decimal,
    primary key (ID_FILMA)
 );
 
